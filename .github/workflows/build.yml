@@ -1,12 +1,13 @@
 name: Build and push images
 
-# Disabled until this pipeline is rewritten to push to ECR. Manual runs only.
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
 
 permissions:
   contents: read
-  packages: write
+  id-token: write
 
 jobs:
   test:
@@ -46,21 +47,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: docker/login-action@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          role-to-assume: arn:aws:iam::000978831369:role/github-ecr-push
+          aws-region: us-east-2
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
       # builds image and does a trivy check
       - uses: docker/build-push-action@v7
         with:
           context: ./api
           load: true
-          tags: ghcr.io/cel6586/game-tracker-api:${{ github.sha }}
+          tags: ${{ steps.ecr.outputs.registry }}/game-tracker-api:${{ github.sha }}
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ghcr.io/cel6586/game-tracker-api:${{ github.sha }}
+          image-ref: ${{ steps.ecr.outputs.registry }}/game-tracker-api:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: 1
@@ -69,10 +72,10 @@ jobs:
         with:
           context: ./web
           load: true
-          tags: ghcr.io/cel6586/game-tracker-web:${{ github.sha }}
+          tags: ${{ steps.ecr.outputs.registry }}/game-tracker-web:${{ github.sha }}
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ghcr.io/cel6586/game-tracker-web:${{ github.sha }}
+          image-ref: ${{ steps.ecr.outputs.registry }}/game-tracker-web:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: 1
@@ -82,19 +85,9 @@ jobs:
         with:
           context: ./api
           push: true
-          tags: ghcr.io/cel6586/game-tracker-api:${{ github.sha }}
+          tags: ${{ steps.ecr.outputs.registry }}/game-tracker-api:${{ github.sha }}
       - uses: docker/build-push-action@v7
         with:
           context: ./web
           push: true
-          tags: ghcr.io/cel6586/game-tracker-web:${{ github.sha }}
-
-  deploy:
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, homelab]
-    steps:
-      - uses: actions/checkout@v7
-      - run: |
-          helm upgrade --install game-tracker chart --namespace game-tracker \
-          --create-namespace --set image.tag=${{ github.sha }} --wait
+          tags: ${{ steps.ecr.outputs.registry }}/game-tracker-web:${{ github.sha }}
