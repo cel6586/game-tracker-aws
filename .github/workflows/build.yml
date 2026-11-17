@@ -1,9 +1,8 @@
 name: Build and push images
 
+# Disabled until this pipeline is rewritten to push to ECR. Manual runs only.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
