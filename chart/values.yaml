@@ -1,0 +1,24 @@
+image:
+  tag: f39c1cba5ec97ab16e509354718c33afc57f2264
+
+# which registry login the pods use to pull images. GitLab deploys set this to gitlab-pull
+pullSecret: ghcr-pull
+
+api:
+  image: ghcr.io/cel6586/game-tracker-api
+  replicas: 2
+
+web:
+  image: ghcr.io/cel6586/game-tracker-web
+  replicas: 2
+
+backup:
+  schedule: "0 3 * * *"
+  bucket: craig-homelab-pg-backup-000978831369-us-east-2-an
+  region: us-east-2
+  # Second copy on the docker-services VM (garage)
+  local:
+    enabled: true
+    endpoint: http://10.0.0.252:3900
+    bucket: pg-backups
+    region: garage

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: game-tracker
+spec:
+  replicas: {{ .Values.web.replicas }}
+  selector:
+    matchLabels:
+      app: game-tracker-web
+  template:
+    metadata:
+      labels:
+        app: game-tracker-web
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.pullSecret }}
+      containers:
+        - name: web
+          image: {{ .Values.web.image }}:{{ .Values.image.tag }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: game-tracker
+spec:
+  selector:
+    app: game-tracker-web
+  ports:
+    - port: 8080
+      targetPort: 8080
+
