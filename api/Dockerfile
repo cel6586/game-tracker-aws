@@ -1,5 +1,5 @@
 # image for the fastapi api
-FROM python:3.13-slim
+FROM python:3.15-slim
 
 # patch the os packages (trivy flagged zlib before), lists removed to keep it small
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
